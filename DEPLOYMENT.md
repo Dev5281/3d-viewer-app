@@ -12,12 +12,14 @@ This project consists of two parts that need to be deployed separately:
 1. Go to [vercel.com](https://vercel.com) and sign in
 2. Click "New Project"
 3. Import your GitHub repository: `Dev5281/3d-viewer-app`
-4. Set the **Root Directory** to `client`
-5. Configure build settings:
-   - **Framework Preset**: Vite
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-   - **Install Command**: `npm install`
+4. **IMPORTANT**: Click "Configure Project" and set:
+   - **Root Directory**: Click "Edit" → Select `client` folder → Click "Continue"
+5. Vercel will auto-detect Vite. Verify these settings:
+   - **Framework Preset**: Vite (auto-detected)
+   - **Build Command**: `npm run build` (auto-detected)
+   - **Output Directory**: `dist` (auto-detected)
+   - **Install Command**: `npm install` (auto-detected)
+6. Click "Deploy"
 
 ### Step 2: Set Environment Variables in Vercel
 
