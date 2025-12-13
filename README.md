@@ -120,6 +120,15 @@ npm run dev
 - `GET /api/settings` - Get saved viewer settings
 - `POST /api/settings` - Save viewer settings
 
+## Deployment
+
+This is a full-stack application that requires both frontend and backend to be deployed separately.
+
+- **Frontend**: Deploy to Vercel (see `DEPLOYMENT.md`)
+- **Backend**: Deploy to Railway, Render, or Heroku (see `DEPLOYMENT.md`)
+
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+
 ## License
 
 MIT
