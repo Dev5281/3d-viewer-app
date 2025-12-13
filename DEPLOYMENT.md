@@ -34,7 +34,29 @@ This project consists of two parts that need to be deployed separately:
 
 ## Backend Deployment
 
-### Option 1: Railway (Recommended)
+### Option 1: Vercel (Serverless Functions)
+
+**Important**: Deploy the server as a separate Vercel project from the frontend.
+
+1. Go to [vercel.com](https://vercel.com) and sign in
+2. Click "New Project"
+3. Import your GitHub repository: `Dev5281/3d-viewer-app`
+4. **IMPORTANT**: Click "Configure Project" and set:
+   - **Root Directory**: Click "Edit" → Select `server` folder → Click "Continue"
+5. Configure build settings:
+   - **Framework Preset**: Other
+   - **Build Command**: Leave empty (or `npm install` if needed)
+   - **Output Directory**: Leave empty
+   - **Install Command**: `npm install`
+6. Add environment variables:
+   - `MONGO_URI` - Your MongoDB connection string
+   - `FRONTEND_URL` - Your frontend Vercel URL (e.g., `https://your-client.vercel.app`)
+7. Deploy!
+8. Copy the deployed URL (e.g., `https://your-server.vercel.app`)
+
+**Note**: The `server/vercel.json` file configures the serverless functions. Make sure it's committed to your repo.
+
+### Option 2: Railway (Recommended for file uploads)
 
 1. Go to [railway.app](https://railway.app) and sign in with GitHub
 2. Click "New Project"
