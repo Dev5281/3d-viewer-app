@@ -2,7 +2,13 @@
 import axios from 'axios';
 
 // Use environment variable for API URL, fallback to localhost for development
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Normalize the URL to remove trailing slashes
+const getApiBase = () => {
+  const url = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  return url.replace(/\/+$/, ''); // Remove trailing slashes
+};
+
+const API_BASE = getApiBase();
 
 export const uploadModel = async (file) => {
   const formData = new FormData();

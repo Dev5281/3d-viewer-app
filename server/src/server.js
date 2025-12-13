@@ -20,12 +20,22 @@ const corsOptions = {
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:3000',
-      process.env.FRONTEND_URL, // Your Vercel URL
+      process.env.FRONTEND_URL, // Your Vercel frontend URL
     ].filter(Boolean);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+    // Allow all Vercel preview and production URLs
+    const isVercelDomain = origin.includes('.vercel.app') || origin.includes('vercel.app');
+    
+    // Check if origin is in allowed list or is a Vercel domain
+    if (
+      allowedOrigins.indexOf(origin) !== -1 || 
+      isVercelDomain ||
+      process.env.NODE_ENV === 'development'
+    ) {
       callback(null, true);
     } else {
+      // Log for debugging
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
