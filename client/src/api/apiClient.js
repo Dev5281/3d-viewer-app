@@ -16,7 +16,8 @@ export const uploadModel = async (file) => {
   const { data } = await axios.post(`${API_BASE}/upload`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
-  return data.fileUrl;
+  // Prefer dataUrl for Vercel (serverless), fallback to fileUrl for local development
+  return data.dataUrl || data.fileUrl;
 };
 
 export const saveSettings = async (settings) => {
