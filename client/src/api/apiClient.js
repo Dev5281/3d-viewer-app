@@ -1,10 +1,16 @@
 
 import axios from 'axios';
 
-// Use environment variable for API URL, fallback to localhost for development
+// Use environment variable for API URL, fallback to Render backend for production, localhost for development
 // Normalize the URL to remove trailing slashes and ensure /api is included
 const getApiBase = () => {
-  let url = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  // Check if we're in development (localhost) or production
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const defaultUrl = isDevelopment 
+    ? 'http://localhost:5000/api' 
+    : 'https://threed-viewer-app-2.onrender.com/api';
+  
+  let url = import.meta.env.VITE_API_URL || defaultUrl;
   
   // Remove trailing slashes
   url = url.replace(/\/+$/, '');
