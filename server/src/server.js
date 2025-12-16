@@ -1,4 +1,3 @@
-// server/src/server.js
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -10,7 +9,6 @@ const settingsRoutes = require('./routes/settingsRoutes');
 
 const app = express();
 
-// Log ALL incoming requests for debugging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
     url: req.url,
@@ -23,9 +21,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// CRITICAL: Handle ALL OPTIONS requests FIRST, before any other middleware
 app.use((req, res, next) => {
-  // Handle OPTIONS preflight requests immediately
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin;
     console.log('OPTIONS preflight request detected:', {
@@ -35,7 +31,6 @@ app.use((req, res, next) => {
       origin: origin
     });
     
-    // Set CORS headers for all origins (permissive for Vercel)
     if (origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -44,7 +39,6 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
       res.setHeader('Access-Control-Max-Age', '86400');
     } else {
-      // Even without origin, set basic CORS headers
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
@@ -56,12 +50,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Manual CORS middleware as fallback (runs before everything)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   const isVercelOrigin = origin && (origin.includes('.vercel.app') || origin.includes('vercel.app'));
   
-  // Always set CORS headers for Vercel origins
   if (origin && (isVercelOrigin || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -74,11 +66,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configure CORS to allow requests from Vercel and localhost
-// More permissive CORS for Vercel deployments
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, or server-to-server requests)
     if (!origin) {
       console.log('CORS: No origin, allowing request');
       return callback(null, true);
@@ -86,35 +75,29 @@ const corsOptions = {
     
     console.log('CORS: Checking origin:', origin);
     
-    // List of allowed origins
     const allowedOrigins = [
       'http://localhost:5173',
       'http://localhost:3000',
       'http://localhost:5174',
-      process.env.FRONTEND_URL, // Your Vercel frontend URL
+      process.env.FRONTEND_URL,
     ].filter(Boolean);
     
-    // Allow all Vercel preview and production URLs (more permissive check)
-    // Match any subdomain of vercel.app - this is the key fix
     const isVercelDomain = /https?:\/\/[^/]+\.vercel\.app/.test(origin) || 
                           origin.includes('vercel.app');
     
-    // Check if origin is in allowed list or is a Vercel domain
     const isAllowed = 
       allowedOrigins.indexOf(origin) !== -1 || 
       isVercelDomain ||
       process.env.NODE_ENV === 'development' ||
-      !process.env.VERCEL; // Allow all origins when not on Vercel (for local dev)
+      !process.env.VERCEL;
     
     if (isAllowed) {
       console.log('CORS: Origin allowed:', origin);
       callback(null, true);
     } else {
-      // Log for debugging but still allow on Vercel (fail open for debugging)
       console.log('CORS: Origin not explicitly allowed:', origin);
       console.log('Allowed origins:', allowedOrigins);
       console.log('Is Vercel domain:', isVercelDomain);
-      // On Vercel, be more permissive - allow the request
       if (process.env.VERCEL) {
         console.log('CORS: Allowing on Vercel (permissive mode)');
         callback(null, true);
@@ -127,21 +110,16 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
-  maxAge: 86400, // 24 hours
+  maxAge: 86400,
 };
 
-// Apply CORS to all routes FIRST
 app.use(cors(corsOptions));
 
-// Note: OPTIONS requests are already handled by the middleware above (lines 27-57)
-// No need for app.options('*') as it's not supported by newer path-to-regexp
-
-app.use(express.json({ limit: '50mb' })); // Increase limit for file uploads
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// Explicit OPTIONS handlers for API routes (before route definitions)
 app.options('/api/upload', (req, res) => {
   const origin = req.headers.origin;
   if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
@@ -166,11 +144,9 @@ app.options('/api/settings', (req, res) => {
   res.sendStatus(200);
 });
 
-// API routes
 app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingsRoutes);
 
-// Handle requests missing /api prefix (common mistake)
 app.post('/upload', cors(corsOptions), (req, res) => {
   res.status(400).json({ 
     error: 'Invalid endpoint. Use /api/upload instead.',
@@ -192,7 +168,6 @@ app.post('/settings', cors(corsOptions), (req, res) => {
   });
 });
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -203,7 +178,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Test upload endpoint (without file processing)
 app.post('/api/upload/test', (req, res) => {
   res.json({ 
     message: 'Upload endpoint is reachable',
@@ -212,7 +186,6 @@ app.post('/api/upload/test', (req, res) => {
   });
 });
 
-// Root endpoint for testing
 app.get('/', (req, res) => {
   res.json({ 
     message: '3D Viewer API Server',
@@ -223,7 +196,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// Test endpoint to verify routing works
 app.all('/test', (req, res) => {
   res.json({
     message: 'Test endpoint reached',
@@ -235,11 +207,9 @@ app.all('/test', (req, res) => {
   });
 });
 
-// Global error handler
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
   
-  // Ensure CORS headers are set even for errors
   const origin = req.headers.origin;
   if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -253,12 +223,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Note: Catch-all OPTIONS handler removed - already handled by middleware above (lines 27-57)
-// The wildcard '*' pattern is not supported by newer path-to-regexp versions
-
-// 404 handler with CORS headers
 app.use((req, res) => {
-  // Ensure CORS headers are set even for 404s
   const origin = req.headers.origin;
   if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -267,7 +232,6 @@ app.use((req, res) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   }
   
-  // Handle OPTIONS on 404 routes (shouldn't reach here if catch-all works)
   if (req.method === 'OPTIONS') {
     console.log('OPTIONS in 404 handler (unexpected):', req.path);
     return res.sendStatus(200);
@@ -281,7 +245,6 @@ app.use((req, res) => {
   });
 });
 
-// Connect to MongoDB
 if (process.env.MONGO_URI) {
   mongoose
     .connect(process.env.MONGO_URI)
@@ -293,12 +256,8 @@ if (process.env.MONGO_URI) {
     });
 }
 
-// For Vercel serverless functions, export the app
-// For local development, start the server
-// Always export for Vercel compatibility
 module.exports = app;
 
-// Only start the server if not on Vercel (local development)
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {

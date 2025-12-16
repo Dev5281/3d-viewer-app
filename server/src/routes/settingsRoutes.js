@@ -1,10 +1,8 @@
-// server/src/routes/settingsRoutes.js
 const express = require('express');
 const ViewerSetting = require('../models/viewerSettings');
 
 const router = express.Router();
 
-// Handle OPTIONS preflight requests explicitly
 router.options('/', (req, res) => {
   const origin = req.headers.origin;
   if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {

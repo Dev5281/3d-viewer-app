@@ -1,4 +1,3 @@
-// server/src/routes/uploadRoutes.js
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -6,8 +5,6 @@ const fs = require('fs');
 
 const router = express.Router();
 
-// Use memory storage for Vercel (ephemeral file system)
-// For production, consider using cloud storage (S3, Cloudinary, Vercel Blob)
 const storage = multer.memoryStorage();
 
 function fileFilter(req, file, cb) {
@@ -25,10 +22,9 @@ function fileFilter(req, file, cb) {
 const upload = multer({ 
   storage, 
   fileFilter, 
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
-}); 
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
 
-// Handle OPTIONS preflight requests explicitly
 router.options('/', (req, res) => {
   const origin = req.headers.origin;
   if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
@@ -41,7 +37,6 @@ router.options('/', (req, res) => {
   res.sendStatus(200);
 });
 
-// Log all incoming requests
 router.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
     contentType: req.headers['content-type'],
@@ -51,7 +46,6 @@ router.use((req, res, next) => {
   next();
 });
 
-// Error handler middleware for multer errors
 router.post('/', (req, res, next) => {
   console.log('Upload request received, processing with multer...');
   upload.single('model')(req, res, (err) => {
@@ -74,7 +68,6 @@ router.post('/', (req, res, next) => {
     next();
   });
 }, (req, res) => {
-  // Handle multer errors
   if (req.fileValidationError) {
     return res.status(400).json({ error: req.fileValidationError });
   }
@@ -92,15 +85,12 @@ router.post('/', (req, res, next) => {
       bufferLength: req.file.buffer?.length
     });
     
-    // Convert file buffer to data URL for immediate use
-    // This works on Vercel since we don't need persistent storage
     const base64 = req.file.buffer.toString('base64');
     const mimeType = req.file.mimetype || 'model/gltf-binary';
     const dataUrl = `data:${mimeType};base64,${base64}`;
     
     console.log('Data URL created, length:', dataUrl.length);
     
-    // Also try to save to disk for local development
     if (process.env.NODE_ENV !== 'production' || process.env.USE_DISK_STORAGE === 'true') {
       const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
       if (!fs.existsSync(uploadsDir)) {
@@ -111,10 +101,9 @@ router.post('/', (req, res, next) => {
       const filePath = path.join(uploadsDir, filename);
       fs.writeFileSync(filePath, req.file.buffer);
       const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${filename}`;
-      return res.json({ fileUrl, dataUrl }); // Return both for compatibility
+      return res.json({ fileUrl, dataUrl });
     }
     
-    // For Vercel/production, return data URL
     res.json({ fileUrl: dataUrl, isDataUrl: true });
   } catch (error) {
     console.error('Upload error:', error);
