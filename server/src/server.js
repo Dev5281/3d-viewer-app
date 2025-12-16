@@ -10,12 +10,30 @@ const settingsRoutes = require('./routes/settingsRoutes');
 
 const app = express();
 
+// Log ALL incoming requests for debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
+    url: req.url,
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl,
+    method: req.method,
+    origin: req.headers.origin,
+    'user-agent': req.headers['user-agent']
+  });
+  next();
+});
+
 // CRITICAL: Handle ALL OPTIONS requests FIRST, before any other middleware
 app.use((req, res, next) => {
   // Handle OPTIONS preflight requests immediately
   if (req.method === 'OPTIONS') {
     const origin = req.headers.origin;
-    console.log('OPTIONS preflight request:', req.path, 'Origin:', origin);
+    console.log('OPTIONS preflight request detected:', {
+      path: req.path,
+      url: req.url,
+      originalUrl: req.originalUrl,
+      origin: origin
+    });
     
     // Set CORS headers for all origins (permissive for Vercel)
     if (origin) {
@@ -25,8 +43,14 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
       res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
       res.setHeader('Access-Control-Max-Age', '86400');
+    } else {
+      // Even without origin, set basic CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
     }
     
+    console.log('Sending 200 for OPTIONS request');
     return res.sendStatus(200);
   }
   next();
@@ -193,7 +217,21 @@ app.get('/', (req, res) => {
   res.json({ 
     message: '3D Viewer API Server',
     status: 'running',
-    endpoints: ['/api/upload', '/api/settings', '/api/health']
+    endpoints: ['/api/upload', '/api/settings', '/api/health'],
+    timestamp: new Date().toISOString(),
+    vercel: !!process.env.VERCEL
+  });
+});
+
+// Test endpoint to verify routing works
+app.all('/test', (req, res) => {
+  res.json({
+    message: 'Test endpoint reached',
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    timestamp: new Date().toISOString()
   });
 });
 
