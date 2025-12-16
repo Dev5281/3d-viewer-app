@@ -15,6 +15,7 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   const isVercelOrigin = origin && (origin.includes('.vercel.app') || origin.includes('vercel.app'));
   
+  // Always set CORS headers for Vercel origins
   if (origin && (isVercelOrigin || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -24,8 +25,9 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Max-Age', '86400');
   }
   
-  // Handle preflight requests
+  // Handle preflight requests - MUST return before calling next()
   if (req.method === 'OPTIONS') {
+    console.log('OPTIONS preflight request:', req.path);
     return res.sendStatus(200);
   }
   
@@ -98,6 +100,31 @@ app.use(express.json({ limit: '50mb' })); // Increase limit for file uploads
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// Explicit OPTIONS handlers for API routes (before route definitions)
+app.options('/api/upload', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+  res.sendStatus(200);
+});
+
+app.options('/api/settings', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+  res.sendStatus(200);
+});
 
 // API routes
 app.use('/api/upload', uploadRoutes);
@@ -179,6 +206,13 @@ app.use((req, res) => {
   if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+  }
+  
+  // Handle OPTIONS on 404 routes
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
   }
   
   res.status(404).json({ 
