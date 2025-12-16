@@ -28,14 +28,25 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
 }); 
 
+// Log all incoming requests
+router.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`, {
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length'],
+    origin: req.headers.origin
+  });
+  next();
+});
+
 // Error handler middleware for multer errors
 router.post('/', (req, res, next) => {
+  console.log('Upload request received, processing with multer...');
   upload.single('model')(req, res, (err) => {
     if (err) {
       console.error('Multer error:', err);
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ 
-          error: 'File too large. Maximum file size is 50MB.' 
+          error: 'File too large. Maximum file size is 50MB. Note: Vercel Hobby plan has a 4.5MB request body limit.' 
         });
       }
       if (err.code === 'LIMIT_UNEXPECTED_FILE') {

@@ -131,7 +131,17 @@ app.get('/api/health', (req, res) => {
     status: 'ok', 
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    vercel: !!process.env.VERCEL
+    vercel: !!process.env.VERCEL,
+    cors: 'enabled'
+  });
+});
+
+// Test upload endpoint (without file processing)
+app.post('/api/upload/test', (req, res) => {
+  res.json({ 
+    message: 'Upload endpoint is reachable',
+    timestamp: new Date().toISOString(),
+    bodySize: req.headers['content-length'] || 'unknown'
   });
 });
 
@@ -141,6 +151,24 @@ app.get('/', (req, res) => {
     message: '3D Viewer API Server',
     status: 'running',
     endpoints: ['/api/upload', '/api/settings', '/api/health']
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  
+  // Ensure CORS headers are set even for errors
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.status(err.status || 500).json({ 
+    error: err.message || 'Internal server error',
+    path: req.path,
+    method: req.method
   });
 });
 
@@ -157,7 +185,7 @@ app.use((req, res) => {
     error: 'Endpoint not found',
     path: req.path,
     method: req.method,
-    availableEndpoints: ['/api/upload', '/api/settings', '/api/health']
+    availableEndpoints: ['/api/upload', '/api/settings', '/api/health', '/api/upload/test']
   });
 });
 
