@@ -1,4 +1,4 @@
-// client/src/components/ControlsPanel.jsx
+
 function ControlsPanel({
     onUpload,
     backgroundColor,
@@ -7,7 +7,8 @@ function ControlsPanel({
     setWireframe,
     useHdri,
     setUseHdri,
-    onSave
+    onSave,
+    uploading = false
   }) {
     return (
       <div style={{
@@ -31,21 +32,27 @@ function ControlsPanel({
           <label style={{
             display: 'inline-block',
             padding: '0.5rem 1rem',
-            background: '#646cff',
+            background: uploading ? '#888' : '#646cff',
             color: 'white',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: uploading ? 'not-allowed' : 'pointer',
             fontSize: '0.875rem',
             transition: 'all 0.2s',
-            border: 'none'
+            border: 'none',
+            opacity: uploading ? 0.6 : 1
           }}>
-            Choose File
+            {uploading ? 'Uploading...' : 'Choose File'}
             <input
               type="file"
               accept=".glb,.gltf"
+              disabled={uploading}
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) onUpload(file);
+                if (file && !uploading) {
+                  onUpload(file);
+                }
+                // Reset input so same file can be selected again
+                e.target.value = '';
               }}
               style={{ display: 'none' }}
             />
