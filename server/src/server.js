@@ -10,6 +10,28 @@ const settingsRoutes = require('./routes/settingsRoutes');
 
 const app = express();
 
+// Manual CORS middleware as fallback (runs before everything)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const isVercelOrigin = origin && (origin.includes('.vercel.app') || origin.includes('vercel.app'));
+  
+  if (origin && (isVercelOrigin || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 // Configure CORS to allow requests from Vercel and localhost
 // More permissive CORS for Vercel deployments
 const corsOptions = {
@@ -31,8 +53,9 @@ const corsOptions = {
     ].filter(Boolean);
     
     // Allow all Vercel preview and production URLs (more permissive check)
-    // Match any subdomain of vercel.app
-    const isVercelDomain = /https?:\/\/[^/]+\.vercel\.app/.test(origin);
+    // Match any subdomain of vercel.app - this is the key fix
+    const isVercelDomain = /https?:\/\/[^/]+\.vercel\.app/.test(origin) || 
+                          origin.includes('vercel.app');
     
     // Check if origin is in allowed list or is a Vercel domain
     const isAllowed = 
@@ -45,21 +68,32 @@ const corsOptions = {
       console.log('CORS: Origin allowed:', origin);
       callback(null, true);
     } else {
-      // Log for debugging
-      console.log('CORS blocked origin:', origin);
+      // Log for debugging but still allow on Vercel (fail open for debugging)
+      console.log('CORS: Origin not explicitly allowed:', origin);
       console.log('Allowed origins:', allowedOrigins);
       console.log('Is Vercel domain:', isVercelDomain);
-      callback(new Error('Not allowed by CORS'));
+      // On Vercel, be more permissive - allow the request
+      if (process.env.VERCEL) {
+        console.log('CORS: Allowing on Vercel (permissive mode)');
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
   maxAge: 86400, // 24 hours
 };
 
+// Apply CORS to all routes FIRST
 app.use(cors(corsOptions));
+
+// Handle OPTIONS preflight requests explicitly
+app.options('*', cors(corsOptions));
+
 app.use(express.json({ limit: '50mb' })); // Increase limit for file uploads
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -68,6 +102,28 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // API routes
 app.use('/api/upload', uploadRoutes);
 app.use('/api/settings', settingsRoutes);
+
+// Handle requests missing /api prefix (common mistake)
+app.post('/upload', cors(corsOptions), (req, res) => {
+  res.status(400).json({ 
+    error: 'Invalid endpoint. Use /api/upload instead.',
+    correctEndpoint: '/api/upload'
+  });
+});
+
+app.get('/settings', cors(corsOptions), (req, res) => {
+  res.status(400).json({ 
+    error: 'Invalid endpoint. Use /api/settings instead.',
+    correctEndpoint: '/api/settings'
+  });
+});
+
+app.post('/settings', cors(corsOptions), (req, res) => {
+  res.status(400).json({ 
+    error: 'Invalid endpoint. Use /api/settings instead.',
+    correctEndpoint: '/api/settings'
+  });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -85,6 +141,23 @@ app.get('/', (req, res) => {
     message: '3D Viewer API Server',
     status: 'running',
     endpoints: ['/api/upload', '/api/settings', '/api/health']
+  });
+});
+
+// 404 handler with CORS headers
+app.use((req, res) => {
+  // Ensure CORS headers are set even for 404s
+  const origin = req.headers.origin;
+  if (origin && (origin.includes('.vercel.app') || origin.includes('localhost'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.status(404).json({ 
+    error: 'Endpoint not found',
+    path: req.path,
+    method: req.method,
+    availableEndpoints: ['/api/upload', '/api/settings', '/api/health']
   });
 });
 
