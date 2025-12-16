@@ -15,6 +15,12 @@
       "src": "/uploads/(.*)",
       "dest": "src/server.js"
     }
-  ]
+  ],
+  "functions": {
+    "src/server.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
 }
 
