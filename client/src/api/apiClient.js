@@ -1,10 +1,7 @@
 
 import axios from 'axios';
 
-// Use environment variable for API URL, fallback to Render backend for production, localhost for development
-// Normalize the URL to remove trailing slashes and ensure /api is included
 const getApiBase = () => {
-  // Check if we're in development (localhost) or production
   const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const defaultUrl = isDevelopment 
     ? 'http://localhost:5000/api' 
@@ -12,10 +9,8 @@ const getApiBase = () => {
   
   let url = import.meta.env.VITE_API_URL || defaultUrl;
   
-  // Remove trailing slashes
   url = url.replace(/\/+$/, '');
   
-  // If URL doesn't end with /api, add it (helps with common misconfiguration)
   if (!url.endsWith('/api')) {
     console.warn(`VITE_API_URL doesn't end with /api. Current: ${url}. Adding /api automatically.`);
     url = url + '/api';
@@ -27,9 +22,8 @@ const getApiBase = () => {
 
 const API_BASE = getApiBase();
 
-// Create axios instance with increased timeout for large file uploads
 const apiClient = axios.create({
-  timeout: 120000, // 2 minutes timeout for large file uploads
+  timeout: 120000,
   headers: {
     'Content-Type': 'multipart/form-data',
   },
@@ -37,16 +31,14 @@ const apiClient = axios.create({
 
 export const uploadModel = async (file) => {
   try {
-    // Check file size
     const fileSizeMB = file.size / 1024 / 1024;
-    const maxSize = 50 * 1024 * 1024; // 50MB
-    const vercelLimit = 4.5 * 1024 * 1024; // 4.5MB - Vercel Hobby plan limit
+    const maxSize = 50 * 1024 * 1024;
+    const vercelLimit = 4.5 * 1024 * 1024;
     
     if (file.size > maxSize) {
       throw new Error(`File size exceeds 50MB limit. Your file is ${fileSizeMB.toFixed(2)}MB`);
     }
     
-    // Warn about Vercel limit
     if (file.size > vercelLimit) {
       console.warn(`⚠️ File size (${fileSizeMB.toFixed(2)}MB) exceeds Vercel's 4.5MB limit. Upload may fail.`);
       throw new Error(`File too large for Vercel (4.5MB limit). Your file is ${fileSizeMB.toFixed(2)}MB. Please use a smaller file or upgrade to Vercel Pro.`);
@@ -65,7 +57,6 @@ export const uploadModel = async (file) => {
       }
     });
     
-    // Prefer dataUrl for Vercel (serverless), fallback to fileUrl for local development
     const url = data.dataUrl || data.fileUrl;
     
     if (!url) {
@@ -77,14 +68,11 @@ export const uploadModel = async (file) => {
     console.error('Upload error:', error);
     
     if (error.response) {
-      // Server responded with error status
       const errorMessage = error.response.data?.error || error.response.statusText || 'Upload failed';
       throw new Error(`Upload failed: ${errorMessage}`);
     } else if (error.request) {
-      // Request was made but no response received
       throw new Error('Upload failed: No response from server. Please check your connection.');
     } else {
-      // Error in request setup
       throw new Error(error.message || 'Upload failed: Unknown error');
     }
   }

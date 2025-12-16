@@ -51,7 +51,6 @@ function ControlsPanel({
                 if (file && !uploading) {
                   onUpload(file);
                 }
-                // Reset input so same file can be selected again
                 e.target.value = '';
               }}
               style={{ display: 'none' }}

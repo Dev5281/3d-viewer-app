@@ -34,7 +34,6 @@ function App() {
     } catch (error) {
       console.error('Upload failed:', error);
       setUploadError(error.message || 'Failed to upload file. Please try again.');
-      // Don't clear the previous model if upload fails
     } finally {
       setUploading(false);
     }
