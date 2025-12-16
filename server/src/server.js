@@ -10,6 +10,28 @@ const settingsRoutes = require('./routes/settingsRoutes');
 
 const app = express();
 
+// CRITICAL: Handle ALL OPTIONS requests FIRST, before any other middleware
+app.use((req, res, next) => {
+  // Handle OPTIONS preflight requests immediately
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin;
+    console.log('OPTIONS preflight request:', req.path, 'Origin:', origin);
+    
+    // Set CORS headers for all origins (permissive for Vercel)
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
+      res.setHeader('Access-Control-Max-Age', '86400');
+    }
+    
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Manual CORS middleware as fallback (runs before everything)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -23,12 +45,6 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
     res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
     res.setHeader('Access-Control-Max-Age', '86400');
-  }
-  
-  // Handle preflight requests - MUST return before calling next()
-  if (req.method === 'OPTIONS') {
-    console.log('OPTIONS preflight request:', req.path);
-    return res.sendStatus(200);
   }
   
   next();
@@ -199,6 +215,22 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Catch-all OPTIONS handler (before 404 handler)
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  console.log('Catch-all OPTIONS handler:', req.path, 'Origin:', origin);
+  
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+  
+  res.sendStatus(200);
+});
+
 // 404 handler with CORS headers
 app.use((req, res) => {
   // Ensure CORS headers are set even for 404s
@@ -210,8 +242,9 @@ app.use((req, res) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   }
   
-  // Handle OPTIONS on 404 routes
+  // Handle OPTIONS on 404 routes (shouldn't reach here if catch-all works)
   if (req.method === 'OPTIONS') {
+    console.log('OPTIONS in 404 handler (unexpected):', req.path);
     return res.sendStatus(200);
   }
   
