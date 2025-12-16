@@ -2,10 +2,21 @@
 import axios from 'axios';
 
 // Use environment variable for API URL, fallback to localhost for development
-// Normalize the URL to remove trailing slashes
+// Normalize the URL to remove trailing slashes and ensure /api is included
 const getApiBase = () => {
-  const url = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  return url.replace(/\/+$/, ''); // Remove trailing slashes
+  let url = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  
+  // Remove trailing slashes
+  url = url.replace(/\/+$/, '');
+  
+  // If URL doesn't end with /api, add it (helps with common misconfiguration)
+  if (!url.endsWith('/api')) {
+    console.warn(`VITE_API_URL doesn't end with /api. Current: ${url}. Adding /api automatically.`);
+    url = url + '/api';
+  }
+  
+  console.log('API Base URL:', url);
+  return url;
 };
 
 const API_BASE = getApiBase();
@@ -20,10 +31,19 @@ const apiClient = axios.create({
 
 export const uploadModel = async (file) => {
   try {
-    // Check file size (50MB limit)
+    // Check file size
+    const fileSizeMB = file.size / 1024 / 1024;
     const maxSize = 50 * 1024 * 1024; // 50MB
+    const vercelLimit = 4.5 * 1024 * 1024; // 4.5MB - Vercel Hobby plan limit
+    
     if (file.size > maxSize) {
-      throw new Error(`File size exceeds 50MB limit. Your file is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      throw new Error(`File size exceeds 50MB limit. Your file is ${fileSizeMB.toFixed(2)}MB`);
+    }
+    
+    // Warn about Vercel limit
+    if (file.size > vercelLimit) {
+      console.warn(`⚠️ File size (${fileSizeMB.toFixed(2)}MB) exceeds Vercel's 4.5MB limit. Upload may fail.`);
+      throw new Error(`File too large for Vercel (4.5MB limit). Your file is ${fileSizeMB.toFixed(2)}MB. Please use a smaller file or upgrade to Vercel Pro.`);
     }
 
     const formData = new FormData();
