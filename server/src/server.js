@@ -133,8 +133,8 @@ const corsOptions = {
 // Apply CORS to all routes FIRST
 app.use(cors(corsOptions));
 
-// Handle OPTIONS preflight requests explicitly
-app.options('*', cors(corsOptions));
+// Note: OPTIONS requests are already handled by the middleware above (lines 27-57)
+// No need for app.options('*') as it's not supported by newer path-to-regexp
 
 app.use(express.json({ limit: '50mb' })); // Increase limit for file uploads
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -253,21 +253,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Catch-all OPTIONS handler (before 404 handler)
-app.options('*', (req, res) => {
-  const origin = req.headers.origin;
-  console.log('Catch-all OPTIONS handler:', req.path, 'Origin:', origin);
-  
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.setHeader('Access-Control-Max-Age', '86400');
-  }
-  
-  res.sendStatus(200);
-});
+// Note: Catch-all OPTIONS handler removed - already handled by middleware above (lines 27-57)
+// The wildcard '*' pattern is not supported by newer path-to-regexp versions
 
 // 404 handler with CORS headers
 app.use((req, res) => {
